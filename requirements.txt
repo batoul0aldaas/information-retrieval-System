@@ -1,0 +1,32 @@
+# Core NLP & IR
+nltk==3.9.4
+spacy==3.8.14
+gensim==4.4.0
+rank-bm25==0.2.2
+scikit-learn
+numpy
+pandas
+scipy
+
+# Transformers & Embeddings
+sentence-transformers>=2.2.0
+transformers>=4.30.0
+torch>=2.0.0
+
+# Datasets & Evaluation
+ir-datasets==0.5.11
+ir-measures==0.4.3
+
+# Query Refinement
+pyspellchecker==0.9.0
+
+# API & Web
+fastapi==0.136.3
+uvicorn==0.48.0
+streamlit==1.58.0
+
+# Utilities
+tqdm==4.67.3
+vaderSentiment==3.3.2
+notebook==7.5.6
+jupyterlab==4.5.7

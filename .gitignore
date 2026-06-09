@@ -1,0 +1,72 @@
+# Virtual environments
+ir_env/
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# Large dataset/cache files
+data/ir_datasets_cache/
+
+# Dataset folders: generated locally
+data/dataset1/*
+data/dataset2/*
+
+# Keep empty dataset folders in GitHub
+!data/dataset1/.gitkeep
+!data/dataset2/.gitkeep
+
+# Raw dataset files
+data/dataset1/documents.jsonl
+data/dataset2/documents.jsonl
+data/dataset1/qrels.jsonl
+data/dataset2/qrels.jsonl
+data/dataset1/queries.jsonl
+data/dataset2/queries.jsonl
+
+# Preprocessed output
+data/processed_dataset1.jsonl
+data/processed_dataset2.jsonl
+data/queries_dataset1.jsonl
+data/queries_dataset2.jsonl
+data/qrels_dataset1.txt
+data/qrels_dataset2.txt
+data/empty_docs_dataset1.txt
+data/empty_docs_dataset2.txt
+
+# Indexing artifacts
+data/dataset1/index.pkl
+data/dataset2/index.pkl
+
+# Embedding artifacts
+data/dataset1/embeddings.pkl
+data/dataset2/embeddings.pkl
+
+# Any generated pickle/vector index files
+*.pkl
+*.index
+embeddings.pkl
+index.pkl
+
+# Checkpoints
+data/dataset1/.checkpoint_docs.txt
+data/dataset2/.checkpoint_docs.txt
+.checkpoint_docs.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temp/log files
+*.tmp
+*.log
