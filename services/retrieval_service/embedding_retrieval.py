@@ -1,116 +1,91 @@
 """
 Embedding-based Retrieval
-
-Uses sentence-transformers (BERT-based) to encode documents and queries,
-then retrieves via cosine similarity.
+Uses sentence-transformers + FAISS vector index for semantic search.
 """
 
-import os
+from __future__ import annotations
+
 import pickle
-from typing import Dict, List, Tuple
+from pathlib import Path
+from typing import Any, List, Tuple
 
-import numpy as np
+import faiss
+from sentence_transformers import SentenceTransformer
 
-_MODEL_CACHE = {}
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = PROJECT_ROOT / "data"
+MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+
+_MODEL_CACHE: SentenceTransformer | None = None
+_FAISS_CACHE: dict[str, Any] = {}
+_METADATA_CACHE: dict[str, dict[str, Any]] = {}
 
 
-def load_model(model_name: str = "all-MiniLM-L6-v2"):
-    """
-    Load and cache the sentence-transformer model.
-    """
-    from sentence_transformers import SentenceTransformer
+def load_model(model_name: str = MODEL_NAME) -> SentenceTransformer:
+    global _MODEL_CACHE
 
-    if model_name not in _MODEL_CACHE:
+    if _MODEL_CACHE is None:
         print(f"Loading embedding model: {model_name}")
-        _MODEL_CACHE[model_name] = SentenceTransformer(model_name)
+        _MODEL_CACHE = SentenceTransformer(model_name)
 
-    return _MODEL_CACHE[model_name]
-
-
-def build_embeddings(
-    documents: Dict[str, str],
-    model_name: str = "all-MiniLM-L6-v2",
-    batch_size: int = 64
-) -> Tuple[np.ndarray, List[str]]:
-    """
-    Encode all documents into normalized embedding vectors.
-
-    Returns:
-        (embeddings_matrix, doc_ids_list)
-    """
-    model = load_model(model_name)
-
-    doc_ids = list(documents.keys())
-    texts = list(documents.values())
-
-    print(f"Encoding {len(texts)} documents...")
-
-    embeddings = model.encode(
-        texts,
-        batch_size=batch_size,
-        show_progress_bar=True,
-        normalize_embeddings=True
-    )
-
-    return np.array(embeddings), doc_ids
+    return _MODEL_CACHE
 
 
-def retrieve_embedding(
+def _load_faiss_dataset(dataset_id: str) -> tuple[Any, dict[str, Any]]:
+    dataset_dir = DATA_DIR / dataset_id
+
+    faiss_path = dataset_dir / "faiss.index"
+    metadata_path = dataset_dir / "embedding_metadata.pkl"
+
+    if not faiss_path.exists():
+        raise FileNotFoundError(f"Missing FAISS index: {faiss_path}")
+
+    if not metadata_path.exists():
+        raise FileNotFoundError(f"Missing embedding metadata: {metadata_path}")
+
+    if dataset_id not in _FAISS_CACHE:
+        _FAISS_CACHE[dataset_id] = faiss.read_index(str(faiss_path))
+
+    if dataset_id not in _METADATA_CACHE:
+        with metadata_path.open("rb") as file:
+            _METADATA_CACHE[dataset_id] = pickle.load(file)
+
+    return _FAISS_CACHE[dataset_id], _METADATA_CACHE[dataset_id]
+
+
+def retrieve_embedding_faiss(
     query: str,
-    embeddings: np.ndarray,
-    doc_ids: List[str],
-    model_name: str = "all-MiniLM-L6-v2",
-    top_k: int = 10
+    dataset_id: str,
+    top_k: int = 10,
 ) -> List[Tuple[str, float]]:
-    """
-    Retrieve top-k documents using cosine similarity.
+    index, metadata = _load_faiss_dataset(dataset_id)
 
-    Assumes document embeddings are already normalized.
-    """
-    model = load_model(model_name)
+    doc_ids = metadata["doc_ids"]
 
-    query_vec = model.encode(
+    model = load_model()
+
+    query_embedding = model.encode(
         [query],
-        normalize_embeddings=True
-    )[0]
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+    ).astype("float32")
 
-    scores = np.dot(embeddings, query_vec)
+    scores, indices = index.search(query_embedding, top_k)
 
-    top_indices = np.argsort(scores)[-top_k:][::-1]
+    results: List[Tuple[str, float]] = []
 
-    return [
-        (doc_ids[i], float(scores[i]))
-        for i in top_indices
-    ]
+    for score, doc_index in zip(scores[0], indices[0]):
+        if doc_index < 0:
+            continue
 
+        results.append((str(doc_ids[doc_index]), float(score)))
 
-def save_embeddings(
-    embeddings: np.ndarray,
-    doc_ids: List[str],
-    path: str
-) -> None:
-    """
-    Save embeddings to disk.
-    """
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-
-    with open(path, "wb") as f:
-        pickle.dump(
-            {
-                "embeddings": embeddings,
-                "doc_ids": doc_ids
-            },
-            f
-        )
-
-    print(f"Embeddings saved to {path}")
+    return results
 
 
-def load_embeddings(path: str) -> Tuple[np.ndarray, List[str]]:
-    """
-    Load embeddings from disk.
-    """
-    with open(path, "rb") as f:
-        data = pickle.load(f)
+def load_embeddings(path: str):
+    with open(path, "rb") as file:
+        data = pickle.load(file)
 
     return data["embeddings"], data["doc_ids"]

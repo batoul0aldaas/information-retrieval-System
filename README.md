@@ -84,9 +84,29 @@ python -m services.retrieval_service.run_embeddings
 # Step 5: Start API Gateway
 uvicorn services.api_gateway.main:app --reload --port 8000
 
+# Step 5: Build document lookup for displaying original documents
+python -m services.document_store_service.build_document_lookup
+
+# Output:
+#   data/dataset1/document_lookup.pkl
+#   data/dataset2/document_lookup.pkl
+
 # Step 6: Start UI
 streamlit run ui/app.py
+
+
 ```
+
+## Document Store / Original Document Lookup
+
+To display the original document text in the final search results, a document lookup file is generated for each dataset.
+
+The retrieval models return only `doc_id` and `score`.  
+After ranking, the API uses the `doc_id` to fetch the original document text from:
+
+````text
+data/dataset1/document_lookup.pkl
+data/dataset2/document_lookup.pkl
 
 ## Indexing Results
 
@@ -154,20 +174,20 @@ python -c "from services.retrieval_service.tfidf_retrieval import retrieve_tfidf
 python -c "from services.retrieval_service.bm25_retrieval import retrieve_bm25; print('BM25 import OK')"
 ```
 
-TF-IDF uses **scikit-learn `TfidfVectorizer`** + `cosine_similarity`.  
+TF-IDF uses **scikit-learn `TfidfVectorizer`** + `cosine_similarity`.
 BM25 uses **rank_bm25 `BM25Okapi`**. Models are built once via `build_lexical_models` and loaded from cache at query time (not rebuilt on first query).
 
 ## Working Retrieval Models
 
 The following models were tested from the Streamlit UI after building the indexes:
 
-| Model | Dataset 1 | Dataset 2 | Status |
-|------|-----------|-----------|--------|
-| BM25 | Working | Working | sklearn rank_bm25 BM25Okapi (requires bm25_model.pkl) |
-| TF-IDF | Working | Working | sklearn TfidfVectorizer (requires tfidf_model.pkl) |
-| Embedding | Not ready | Not ready | Requires embeddings.pkl |
-| Hybrid Serial | Partially ready | Partially ready | Requires embeddings.pkl |
-| Hybrid Parallel | Not ready | Not ready | Requires embeddings.pkl |
+| Model           | Dataset 1       | Dataset 2       | Status                  |
+| --------------- | --------------- | --------------- | ----------------------- |
+| BM25            | Working         | Working         | Tested                  |
+| TF-IDF          | Working         | Working         | Tested                  |
+| Embedding       | Not ready       | Not ready       | Requires embeddings.pkl |
+| Hybrid Serial   | Partially ready | Partially ready | Requires embeddings.pkl |
+| Hybrid Parallel | Not ready       | Not ready       | Requires embeddings.pkl |
 
 BM25 and TF-IDF were tested using the FastAPI backend and Streamlit UI.
 
@@ -198,14 +218,14 @@ python test_preprocessing.py
 
 ## Services
 
-| Service | Port | Responsibility |
-|---------|------|----------------|
-| API Gateway | 8000 | Routes requests to services |
-| Preprocessing | - | Tokenization, stemming, lemmatization |
-| Indexing | - | Inverted index for fast retrieval |
-| Retrieval | - | TF-IDF, BM25, Embeddings, Hybrid |
-| Query | - | Query processing & refinement |
-| Ranking & Evaluation | - | Ranking results, MAP/nDCG metrics |
+| Service              | Port | Responsibility                        |
+| -------------------- | ---- | ------------------------------------- |
+| API Gateway          | 8000 | Routes requests to services           |
+| Preprocessing        | -    | Tokenization, stemming, lemmatization |
+| Indexing             | -    | Inverted index for fast retrieval     |
+| Retrieval            | -    | TF-IDF, BM25, Embeddings, Hybrid      |
+| Query                | -    | Query processing & refinement         |
+| Ranking & Evaluation | -    | Ranking results, MAP/nDCG metrics     |
 
 ## Datasets
 
@@ -253,29 +273,79 @@ Person 2 completed the following tasks:
 - Tested TF-IDF search from the Streamlit UI on both datasets
 - Verified that BM25 parameters `k1` and `b` can be changed from the UI
 
-## Next Step for Person 3
+## Person 3 Completion Summary
 
-Person 3 should continue with Embeddings, Vector Store, and Semantic Search.
+Person 3 completed the Embeddings, Vector Store, and Semantic Search part of the project.
 
-Required next tasks:
+### Completed Tasks
+
+- Selected an embedding model:
+  - `sentence-transformers/all-MiniLM-L6-v2`
+
+- Created the embeddings runner:
 
 ```text
-1. Create services/retrieval_service/run_embeddings.py
-2. Generate embeddings for dataset1 and dataset2
-3. Save embeddings locally as:
-   data/dataset1/embeddings.pkl
-   data/dataset2/embeddings.pkl
-4. Test embedding retrieval
-5. Continue testing hybrid_serial and hybrid_parallel
-6. Consider using FAISS or another vector store for faster semantic search
+services/retrieval_service/run_embeddings.py
 ```
 
-Suggested command after implementing the embeddings runner:
+- Generated document embeddings for both datasets.
+
+- Built FAISS vector indexes for semantic search.
+
+- Updated embedding retrieval logic in:
+
+```text
+services/retrieval_service/embedding_retrieval.py
+```
+
+- Added a test script for embedding search:
+
+```text
+services/retrieval_service/test_embedding_search.py
+```
+
+- Integrated embedding retrieval with the API Gateway by supporting:
+
+```text
+model = embedding
+```
+
+- Tested embedding retrieval from:
+  - command line
+  - FastAPI
+  - Streamlit UI
+
+---
+
+### Generated Files
+
+Dataset 1:
+
+```text
+data/dataset1/embeddings.pkl
+data/dataset1/embedding_metadata.pkl
+data/dataset1/faiss.index
+```
+
+Dataset 2:
+
+```text
+data/dataset2/embeddings.pkl
+data/dataset2/embedding_metadata.pkl
+data/dataset2/faiss.index
+```
+
+These generated files are not committed to GitHub because they can be large and should be regenerated locally.
+
+---
+
+### Embedding Generation Command
 
 ```bash
 python -m services.retrieval_service.run_embeddings
 ```
 
+<<<<<<< HEAD
 Note: Embedding generation for 500,000 documents per dataset can take a long time and may require significant memory.
 ## Evaluation
 
@@ -351,3 +421,4 @@ python reports/generate_charts.py
 
 ![nDCG](reports/figures/nDCG@10.png)
 
+````
