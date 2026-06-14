@@ -64,7 +64,7 @@ if st.button("Search") and query:
                 "use_spell_correction": spell_correction,
                 "use_synonyms": use_synonyms,
             }
-            response = requests.post(f"{API_URL}/search", json=payload, timeout=30)
+            response = requests.post(f"{API_URL}/search", json=payload, timeout=300)
             data = response.json()
 
             if data.get("corrected_query") and data["corrected_query"] != query:

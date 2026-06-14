@@ -72,8 +72,17 @@ python -m services.indexing_service.run_indexing
 # Step 4: Start API Gateway
 uvicorn services.api_gateway.main:app --reload --port 8000
 
-# Step 5: Start UI
+# Step 5: Build document lookup for displaying original documents
+python -m services.document_store_service.build_document_lookup
+
+# Output:
+#   data/dataset1/document_lookup.pkl
+#   data/dataset2/document_lookup.pkl
+
+# Step 6: Start UI
 streamlit run ui/app.py
+
+
 ```
 
 ## Indexing Results
@@ -136,13 +145,13 @@ python -c "from services.indexing_service.inverted_index import InvertedIndex; i
 
 The following models were tested from the Streamlit UI after building the indexes:
 
-| Model | Dataset 1 | Dataset 2 | Status |
-|------|-----------|-----------|--------|
-| BM25 | Working | Working | Tested |
-| TF-IDF | Working | Working | Tested |
-| Embedding | Not ready | Not ready | Requires embeddings.pkl |
-| Hybrid Serial | Partially ready | Partially ready | Requires embeddings.pkl |
-| Hybrid Parallel | Not ready | Not ready | Requires embeddings.pkl |
+| Model           | Dataset 1       | Dataset 2       | Status                  |
+| --------------- | --------------- | --------------- | ----------------------- |
+| BM25            | Working         | Working         | Tested                  |
+| TF-IDF          | Working         | Working         | Tested                  |
+| Embedding       | Not ready       | Not ready       | Requires embeddings.pkl |
+| Hybrid Serial   | Partially ready | Partially ready | Requires embeddings.pkl |
+| Hybrid Parallel | Not ready       | Not ready       | Requires embeddings.pkl |
 
 BM25 and TF-IDF were tested using the FastAPI backend and Streamlit UI.
 
@@ -173,14 +182,14 @@ python test_preprocessing.py
 
 ## Services
 
-| Service | Port | Responsibility |
-|---------|------|----------------|
-| API Gateway | 8000 | Routes requests to services |
-| Preprocessing | - | Tokenization, stemming, lemmatization |
-| Indexing | - | Inverted index for fast retrieval |
-| Retrieval | - | TF-IDF, BM25, Embeddings, Hybrid |
-| Query | - | Query processing & refinement |
-| Ranking & Evaluation | - | Ranking results, MAP/nDCG metrics |
+| Service              | Port | Responsibility                        |
+| -------------------- | ---- | ------------------------------------- |
+| API Gateway          | 8000 | Routes requests to services           |
+| Preprocessing        | -    | Tokenization, stemming, lemmatization |
+| Indexing             | -    | Inverted index for fast retrieval     |
+| Retrieval            | -    | TF-IDF, BM25, Embeddings, Hybrid      |
+| Query                | -    | Query processing & refinement         |
+| Ranking & Evaluation | -    | Ranking results, MAP/nDCG metrics     |
 
 ## Datasets
 
@@ -228,37 +237,126 @@ Person 2 completed the following tasks:
 - Tested TF-IDF search from the Streamlit UI on both datasets
 - Verified that BM25 parameters `k1` and `b` can be changed from the UI
 
-## Next Step for Person 3
+## Person 3 Completion Summary
 
-Person 3 should continue with Embeddings, Vector Store, and Semantic Search.
+Person 3 completed the Embeddings, Vector Store, and Semantic Search part of the project.
 
-Required next tasks:
+### Completed Tasks
+
+- Selected an embedding model:
+  - `sentence-transformers/all-MiniLM-L6-v2`
+
+- Created the embeddings runner:
 
 ```text
-1. Create services/retrieval_service/run_embeddings.py
-2. Generate embeddings for dataset1 and dataset2
-3. Save embeddings locally as:
-   data/dataset1/embeddings.pkl
-   data/dataset2/embeddings.pkl
-4. Test embedding retrieval
-5. Continue testing hybrid_serial and hybrid_parallel
-6. Consider using FAISS or another vector store for faster semantic search
+services/retrieval_service/run_embeddings.py
 ```
 
-Suggested command after implementing the embeddings runner:
+- Generated document embeddings for both datasets.
+
+- Built FAISS vector indexes for semantic search.
+
+- Updated embedding retrieval logic in:
+
+```text
+services/retrieval_service/embedding_retrieval.py
+```
+
+- Added a test script for embedding search:
+
+```text
+services/retrieval_service/test_embedding_search.py
+```
+
+- Integrated embedding retrieval with the API Gateway by supporting:
+
+```text
+model = embedding
+```
+
+- Tested embedding retrieval from:
+  - command line
+  - FastAPI
+  - Streamlit UI
+
+---
+
+### Generated Files
+
+Dataset 1:
+
+```text
+data/dataset1/embeddings.pkl
+data/dataset1/embedding_metadata.pkl
+data/dataset1/faiss.index
+```
+
+Dataset 2:
+
+```text
+data/dataset2/embeddings.pkl
+data/dataset2/embedding_metadata.pkl
+data/dataset2/faiss.index
+```
+
+These generated files are not committed to GitHub because they can be large and should be regenerated locally.
+
+---
+
+### Embedding Generation Command
 
 ```bash
 python -m services.retrieval_service.run_embeddings
 ```
 
-Note: Embedding generation for 500,000 documents per dataset can take a long time and may require significant memory.
+---
 
-## Team
+### Embedding Search Test
 
-| Member | Responsibility |
-|--------|---------------|
-| Person 1 | Core Architecture, Preprocessing Service |
-| Person 2 | Indexing Service, TF-IDF, BM25 |
-| Person 3 | Embeddings, Hybrid Representation |
-| Person 4 | Query Processing & Refinement |
-| Person 5 | Evaluation, UI, Additional Feature |
+```bash
+python -m services.retrieval_service.test_embedding_search
+```
+
+---
+
+### Current Note
+
+During the current test run, embeddings were generated using:
+
+```python
+SAMPLE_SIZE = 10000
+```
+
+This means the semantic search was tested on the first 10,000 documents from each dataset to reduce runtime and memory usage.
+
+To generate embeddings for the full datasets, remove or increase `SAMPLE_SIZE` in:
+
+```text
+services/retrieval_service/run_embeddings.py
+```
+
+---
+
+## Next Step for Person 4
+
+Person 4 is responsible for Hybrid Retrieval, Query Refinement, and Ranking.
+
+### Remaining Tasks
+
+- Implement Serial Hybrid Retrieval.
+- Implement Parallel Hybrid Retrieval.
+- Implement Fusion Methods such as Reciprocal Rank Fusion (RRF).
+- Implement Query Refinement techniques.
+- Standardize retrieval output format across all models.
+- Compare BM25, TF-IDF, fand Embedding retrieval results.
+- Build a unified ranking layer.
+- Document Hybrid Retrieval and Query Refinement components.
+
+### Expected Deliverables
+
+```text
+services/retrieval_service/hybrid_retrieval.py
+services/retrieval_service/fusion_service.py
+services/query_service/query_processor.py
+services/ranking_service/ranking_service.py
+```

@@ -6,6 +6,7 @@ Central entry point that routes requests to all IR services.
 from fastapi import FastAPI, Query
 from pydantic import BaseModel
 from typing import List, Optional
+from services.document_store_service.document_store import get_original_text
 
 app = FastAPI(
     title="Information Retrieval System",
@@ -117,10 +118,12 @@ def _run_retrieval(request: SearchRequest, tokens: List[str]) -> List[SearchResu
         )
 
     elif request.model == "embedding":
-        from services.retrieval_service.embedding_retrieval import retrieve_embedding, load_embeddings
-        from services.api_gateway.index_registry import get_embeddings
-        embeddings, doc_ids = get_embeddings(request.dataset)
-        raw_results = retrieve_embedding(query_text, embeddings, doc_ids, top_k=request.top_k)
+        from services.retrieval_service.embedding_retrieval import retrieve_embedding_faiss
+        raw_results = retrieve_embedding_faiss(
+            query_text,
+            request.dataset,
+            top_k=request.top_k,
+        )
 
     elif request.model in ("hybrid_serial", "hybrid_parallel"):
         from services.api_gateway.index_registry import get_index, get_embeddings
@@ -143,7 +146,20 @@ def _run_retrieval(request: SearchRequest, tokens: List[str]) -> List[SearchResu
                 bm25_k1=request.bm25_k1, bm25_b=request.bm25_b
             )
 
-    return [
-        SearchResult(doc_id=doc_id, score=round(score, 4), rank=rank + 1)
-        for rank, (doc_id, score) in enumerate(raw_results)
-    ]
+    results: List[SearchResult] = []
+
+    for rank, (doc_id, score) in enumerate(raw_results):
+        original_text = get_original_text(request.dataset, str(doc_id))
+
+        results.append(
+            SearchResult(
+                doc_id=str(doc_id),
+                score=round(float(score), 4),
+                rank=rank + 1,
+                snippet=original_text[:500] if original_text else None,
+            )
+        )
+
+    return results
+
+    
