@@ -360,3 +360,157 @@ services/retrieval_service/fusion_service.py
 services/query_service/query_processor.py
 services/ranking_service/ranking_service.py
 ```
+## Person 4 Completion Summary
+
+Person 4 completed the Hybrid Retrieval, Query Refinement, Ranking, and Evaluation integration layer of the Information Retrieval System.
+
+### Completed Tasks
+🔹 1. Hybrid Retrieval (Serial + Parallel)
+
+Implemented two hybrid strategies combining multiple retrieval models:
+
+✔ Serial Hybrid Retrieval
+Step 1: BM25 is used to retrieve initial candidate documents.
+Step 2: Embedding-based retrieval is applied on candidate set.
+Step 3: Final reranking based on semantic similarity filtering.
+BM25 → Candidate Selection → Embedding Re-ranking → Final Results
+✔ Parallel Hybrid Retrieval
+Runs multiple retrieval models in parallel:
+BM25
+TF-IDF
+Embedding Search
+Combines results using fusion techniques.
+BM25 + TF-IDF + Embedding → Fusion Layer → Final Ranking
+### 2. Fusion Methods
+
+Implemented ranking fusion techniques to combine multiple retrieval outputs:
+
+✔ Reciprocal Rank Fusion (RRF)
+Combines rankings from multiple models
+Robust to score scale differences
+Final Score = Σ (1 / (k + rank))
+✔ Linear Fusion (Weighted)
+Combines normalized scores using weights
+### 3. Query Refinement Module
+
+Implemented a unified query processing pipeline in:
+
+services/query_service/query_processor.py
+✔ Features:
+Token cleaning and normalization
+Stopword removal
+Stemming / lemmatization
+Synonym expansion (optional)
+Spell correction (optional)
+🔥 Pseudo Relevance Feedback (PRF)
+✔ PRF (Pseudo Relevance Feedback)
+Retrieves top initial results
+Extracts expansion terms from top documents
+Expands original query
+Original Query → Initial Retrieval → Expansion Terms → Expanded Query → Final Retrieval
+✔ Behavior:
+PRF is optional (use_prf checkbox in UI)
+Works on top of any retrieval model
+Only modifies query input, not retrieval model
+### 4. Ranking Layer Standardization
+
+Implemented a unified ranking format across all retrieval models:
+
+✔ Standard Output Format:
+[
+  {
+    "doc_id": str,
+    "score": float,
+    "rank": int,
+    "snippet": str
+  }
+]
+✔ Responsibilities:
+Ensures consistency across BM25, TF-IDF, Embeddings, Hybrid
+Used by API Gateway and Streamlit UI
+### 5. Evaluation & Model Comparison
+
+Implemented ranking evaluation service:
+
+services/ranking_evaluation_service/comparison_service.py
+✔ Metrics Supported:
+MAP (Mean Average Precision)
+Precision@10
+Recall
+nDCG@10
+✔ Functionality:
+Compare multiple retrieval models:
+BM25
+TF-IDF
+Embedding
+Hybrid Serial
+Hybrid Parallel
+Uses ir_measures library for evaluation
+✔ Evaluation Input Format:
+runs = {
+    "bm25": DataFrame(doc_id, score),
+    "tfidf": DataFrame(doc_id, score),
+    "embedding": DataFrame(doc_id, score)
+}
+### 6. API Gateway Integration
+
+Extended FastAPI /search endpoint to support:
+
+✔ PRF + Query Refinement Pipeline:
+Query → Refinement → (PRF Expansion) → Retrieval → Ranking → Response
+✔ Added Response Fields:
+{
+  "query": "...",
+  "corrected_query": "...",
+  "expanded_query": "...",
+  "model_used": "...",
+  "results": []
+}
+### 7. UI Integration (Streamlit)
+
+Updated Streamlit interface to support:
+
+✔ Features:
+Model selection (BM25, TF-IDF, Embedding, Hybrid)
+PRF toggle checkbox
+Query correction display
+Expanded query display
+Ranking table view
+Debug mode for API response
+### 8. Debugging & System Fixes
+
+During integration, the following issues were resolved:
+
+Fixed missing parameters in hybrid retrieval functions
+Fixed FAISS embedding dataset parameter mismatch
+Fixed PRF integration with query pipeline
+Fixed API Gateway crash (500 errors)
+Fixed ranking output consistency issues
+Fixed Streamlit duplicate button key errors
+Added safe JSON parsing for API responses
+### Final System Behavior
+
+The final integrated system supports:
+
+✔ Multi-Model Retrieval
+BM25
+TF-IDF
+Embeddings
+Hybrid Serial
+Hybrid Parallel
+✔ Query Enhancement
+Spell correction
+Synonym expansion
+Pseudo Relevance Feedback (PRF)
+✔ Hybrid Ranking
+Serial re-ranking pipeline
+Parallel fusion (RRF / Linear)
+✔ Evaluation
+Cross-model comparison using IR metrics
+### Final Deliverables
+services/retrieval_service/hybrid_retrieval.py
+services/retrieval_service/fusion_service.py
+services/query_service/query_processor.py
+services/ranking_evaluation_service/comparison_service.py
+services/api_gateway/main.py (updated search pipeline)
+ui/app.py (Streamlit interface)

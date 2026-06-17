@@ -44,12 +44,15 @@ with st.sidebar:
     st.subheader("Query Refinement")
     spell_correction = st.checkbox("Spell Correction", value=True)
     use_synonyms     = st.checkbox("Synonym Expansion", value=False)
-
+    use_prf = st.checkbox("Pseudo Relevance Feedback (PRF)",value=False)
 
 # ─── Search Bar ───────────────────────────────────────────────────────────────
 query = st.text_input("Enter your search query", placeholder="e.g. climate change effects")
 
-if st.button("Search") and query:
+data = None
+search_clicked = st.button("Search")
+
+if search_clicked and query:
     with st.spinner("Searching..."):
         try:
             payload = {
@@ -63,27 +66,58 @@ if st.button("Search") and query:
                 "fusion_method": fusion_method,
                 "use_spell_correction": spell_correction,
                 "use_synonyms": use_synonyms,
+                "use_prf": use_prf,
             }
-            response = requests.post(f"{API_URL}/search", json=payload, timeout=300)
-            data = response.json()
 
-            if data.get("corrected_query") and data["corrected_query"] != query:
-                st.info(f"Query corrected to: **{data['corrected_query']}**")
-
-            st.success(f"Found {data['total_results']} results using **{data['model_used']}**")
-
-            for result in data["results"]:
-                with st.expander(f"Rank {result['rank']} — Doc ID: {result['doc_id']}  |  Score: {result['score']}"):
-                    if result.get("snippet"):
-                        st.write(result["snippet"])
-                    else:
-                        st.write("No snippet available.")
+            response = requests.post(
+                f"{API_URL}/search",
+                json=payload,
+                timeout=300
+            )
+            try:
+                data = response.json()
+            except Exception:
+                st.error("Backend did not return valid JSON")
+                data = None
 
         except requests.exceptions.ConnectionError:
-            st.error("Cannot connect to API Gateway. Make sure the server is running: `uvicorn services.api_gateway.main:app --reload`")
+            st.error("Cannot connect to API Gateway")
+            data = None
+
         except Exception as e:
             st.error(f"Error: {e}")
+            data = None
+# Ranking Table
+# ─── Safe check ─────────────────────────────
+if data and "results" in data:
 
+    if data.get("corrected_query") and data["corrected_query"] != query:
+        st.info(f"Query corrected to: **{data['corrected_query']}**")
+
+    if data.get("expanded_query"):
+        st.info(f"Expanded Query: {data['expanded_query']}")
+
+    st.success(f"Found {data['total_results']} results using **{data['model_used']}**")
+
+    import pandas as pd
+
+    table_data = [
+        {
+            "Rank": r["rank"],
+            "Doc ID": r["doc_id"],
+            "Score": r["score"]
+        }
+        for r in data["results"]
+    ]
+
+    st.subheader("Ranking Table")
+    st.dataframe(pd.DataFrame(table_data), use_container_width=True)
+
+    for result in data["results"]:
+        with st.expander(
+            f"Rank {result['rank']} — Doc ID: {result['doc_id']} | Score: {result['score']}"
+        ):
+            st.write(result.get("snippet", "No snippet available."))
 
 # ─── Suggestions ──────────────────────────────────────────────────────────────
 if query and len(query) > 2:
@@ -96,7 +130,7 @@ if query and len(query) > 2:
             if suggestions:
                 st.markdown("**Query suggestions:**")
                 for s in suggestions:
-                    if st.button(s, key=s):
+                    if st.button(s, key=f"sugg_{s}"):
                         st.session_state["query"] = s
         except Exception:
             pass

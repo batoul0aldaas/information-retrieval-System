@@ -28,6 +28,7 @@ class SearchRequest(BaseModel):
     fusion_method: str = "rrf"    # rrf | linear
     use_spell_correction: bool = True
     use_synonyms: bool = False
+    use_prf: bool = False
 
 
 class SearchResult(BaseModel):
@@ -36,10 +37,10 @@ class SearchResult(BaseModel):
     rank: int
     snippet: Optional[str] = None
 
-
 class SearchResponse(BaseModel):
     query: str
     corrected_query: Optional[str]
+    expanded_query: Optional[str] = None
     model_used: str
     results: List[SearchResult]
     total_results: int
@@ -56,19 +57,25 @@ def root():
 def health():
     return {"status": "ok"}
 
-
 @app.post("/search", response_model=SearchResponse)
 def search(request: SearchRequest):
     """
     Main search endpoint.
     Accepts query + model parameters, returns ranked results.
     """
+
     from services.query_service.query_processor import refine_query
+    from services.api_gateway.index_registry import get_index
+
+    index = get_index(request.dataset)
 
     refined = refine_query(
         request.query,
         use_spell_correction=request.use_spell_correction,
-        use_synonyms=request.use_synonyms
+        use_synonyms=request.use_synonyms,
+        use_prf=request.use_prf,
+        index=index,
+        dataset=request.dataset
     )
 
     results = _run_retrieval(request, refined["expanded_tokens"])
@@ -76,11 +83,11 @@ def search(request: SearchRequest):
     return SearchResponse(
         query=request.query,
         corrected_query=refined.get("corrected"),
+        expanded_query=refined.get("prf_query"),
         model_used=request.model,
         results=results,
         total_results=len(results)
     )
-
 
 @app.get("/suggest")
 def suggest(query: str = Query(...), history: List[str] = Query(default=[])):
