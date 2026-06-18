@@ -87,6 +87,7 @@ def search(request: SearchRequest):
         model_used=request.model,
         results=results,
         total_results=len(results)
+        
     )
 
 @app.get("/suggest")
@@ -141,14 +142,14 @@ def _run_retrieval(request: SearchRequest, tokens: List[str]) -> List[SearchResu
             from services.retrieval_service.hybrid_retrieval import retrieve_hybrid_serial
             raw_results = retrieve_hybrid_serial(
                 query_text, index, embeddings, doc_ids,
-                final_top_k=request.top_k,
+                final_top_k=request.top_k, dataset=request.dataset,
                 bm25_k1=request.bm25_k1, bm25_b=request.bm25_b
             )
         else:
             from services.retrieval_service.hybrid_retrieval import retrieve_hybrid_parallel
             raw_results = retrieve_hybrid_parallel(
                 query_text, index, embeddings, doc_ids,
-                top_k=request.top_k,
+                top_k=request.top_k,  dataset=request.dataset,
                 fusion_method=request.fusion_method,
                 bm25_k1=request.bm25_k1, bm25_b=request.bm25_b
             )

@@ -109,6 +109,7 @@ def refine_query(
         prf_query = pseudo_relevance_feedback(
             corrected,
             index,
+             dataset=dataset,
             top_k=5,
             expansion_terms=5
         )
@@ -150,6 +151,7 @@ def clean_tokens(tokens):
 def pseudo_relevance_feedback(
     query: str,
     index,
+    dataset: str,
     top_k: int = 5,
     expansion_terms: int = 5,
     bm25_k1: float = 1.5,
@@ -169,7 +171,7 @@ def pseudo_relevance_feedback(
     tokens_pool = []
 
     for doc_id, _ in initial_results:
-        text = get_original_text("dataset1", str(doc_id))
+        text = get_original_text(dataset, str(doc_id))
 
         if not text:
             continue
