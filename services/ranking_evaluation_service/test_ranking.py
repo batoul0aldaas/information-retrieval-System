@@ -1,4 +1,4 @@
-from services.ranking_evaluation_service.ranking_service import RankingService
+from services.ranking_service.ranking_service import RankingService
 
 # fake results (تجريب)
 results = [
