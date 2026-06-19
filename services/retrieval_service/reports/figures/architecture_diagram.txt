@@ -1,0 +1,15 @@
+User
+ │
+ ▼
+Streamlit UI
+ │
+ ▼
+API Gateway
+ │
+ ├── Query Refinement Service
+ ├── BM25 Service
+ ├── TF-IDF Service
+ ├── Embedding Service
+ ├── Hybrid Service
+ ├── Evaluation Service
+ └── Document Store Service

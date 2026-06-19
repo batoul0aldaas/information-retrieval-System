@@ -252,7 +252,49 @@ python -m services.retrieval_service.run_embeddings
 ```
 
 Note: Embedding generation for 500,000 documents per dataset can take a long time and may require significant memory.
+## Evaluation
 
+The retrieval models were evaluated using standard Information Retrieval metrics.
+
+### Metrics
+
+- MAP
+- Recall@10
+- Precision@10
+- nDCG@10
+
+### Evaluation Dataset
+
+- Dataset: MSMARCO Passage
+- Evaluated queries: 2,781
+
+### Results
+
+| Model | MAP | Recall@10 | P@10 | nDCG@10 |
+|-------|------|------------|------|---------|
+| TF-IDF | 0.003032 | 0.006293 | 0.000683 | 0.003868 |
+| BM25 | 0.003613 | 0.007371 | 0.000791 | 0.004592 |
+| Embedding | 0.006783 | 0.011866 | 0.001259 | 0.008132 |
+| Hybrid Serial | 0.005747 | 0.009349 | 0.000971 | 0.006700 |
+| Hybrid Parallel | 0.004407 | 0.008990 | 0.000971 | 0.005613 |
+
+### Key Findings
+
+- Embedding retrieval achieved the best MAP and nDCG@10 scores.
+- BM25 outperformed TF-IDF across all metrics.
+- Hybrid retrieval improved recall compared with lexical approaches.
+
+### Run Evaluation
+
+```bash
+python -m services.ranking_evaluation_service.evaluator
+```
+
+### Generate Charts
+
+```bash
+python reports/generate_charts.py
+```
 ## Team
 
 | Member | Responsibility |
@@ -262,3 +304,25 @@ Note: Embedding generation for 500,000 documents per dataset can take a long tim
 | Person 3 | Embeddings, Hybrid Representation |
 | Person 4 | Query Processing & Refinement |
 | Person 5 | Evaluation, UI, Additional Feature |
+
+
+
+
+## Evaluation Charts
+
+### MAP
+
+![MAP](reports/figures/MAP.png)
+
+### Recall@10
+
+![Recall](reports/figures/Recall@10.png)
+
+### Precision@10
+
+![Precision](reports/figures/P@10.png)
+
+### nDCG@10
+
+![nDCG](reports/figures/nDCG@10.png)
+

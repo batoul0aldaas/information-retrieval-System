@@ -1,21 +1,30 @@
 """
 Embedding-based Retrieval
+
 Uses sentence-transformers (BERT-based) to encode documents and queries,
 then retrieves via cosine similarity.
 """
 
-import numpy as np
-import pickle
 import os
+import pickle
 from typing import Dict, List, Tuple
-from tqdm import tqdm
+
+import numpy as np
+
+_MODEL_CACHE = {}
 
 
 def load_model(model_name: str = "all-MiniLM-L6-v2"):
-    """Load a sentence-transformer model."""
+    """
+    Load and cache the sentence-transformer model.
+    """
     from sentence_transformers import SentenceTransformer
-    print(f"Loading embedding model: {model_name}")
-    return SentenceTransformer(model_name)
+
+    if model_name not in _MODEL_CACHE:
+        print(f"Loading embedding model: {model_name}")
+        _MODEL_CACHE[model_name] = SentenceTransformer(model_name)
+
+    return _MODEL_CACHE[model_name]
 
 
 def build_embeddings(
@@ -24,25 +33,26 @@ def build_embeddings(
     batch_size: int = 64
 ) -> Tuple[np.ndarray, List[str]]:
     """
-    Encode all documents into embedding vectors.
-    Returns (embeddings_matrix, doc_ids_list).
+    Encode all documents into normalized embedding vectors.
+
+    Returns:
+        (embeddings_matrix, doc_ids_list)
     """
     model = load_model(model_name)
+
     doc_ids = list(documents.keys())
     texts = list(documents.values())
 
     print(f"Encoding {len(texts)} documents...")
-    embeddings = model.encode(texts, batch_size=batch_size, show_progress_bar=True)
+
+    embeddings = model.encode(
+        texts,
+        batch_size=batch_size,
+        show_progress_bar=True,
+        normalize_embeddings=True
+    )
+
     return np.array(embeddings), doc_ids
-
-
-def cosine_similarity(vec_a: np.ndarray, vec_b: np.ndarray) -> float:
-    """Compute cosine similarity between two vectors."""
-    norm_a = np.linalg.norm(vec_a)
-    norm_b = np.linalg.norm(vec_b)
-    if norm_a == 0 or norm_b == 0:
-        return 0.0
-    return float(np.dot(vec_a, vec_b) / (norm_a * norm_b))
 
 
 def retrieve_embedding(
@@ -53,31 +63,54 @@ def retrieve_embedding(
     top_k: int = 10
 ) -> List[Tuple[str, float]]:
     """
-    Retrieve top-k documents using embedding cosine similarity.
-    Returns list of (doc_id, score) sorted descending.
+    Retrieve top-k documents using cosine similarity.
+
+    Assumes document embeddings are already normalized.
     """
     model = load_model(model_name)
-    query_vec = model.encode([query])[0]
 
-    scores = []
-    for i, doc_id in enumerate(doc_ids):
-        score = cosine_similarity(query_vec, embeddings[i])
-        scores.append((doc_id, score))
+    query_vec = model.encode(
+        [query],
+        normalize_embeddings=True
+    )[0]
 
-    scores.sort(key=lambda x: x[1], reverse=True)
-    return scores[:top_k]
+    scores = np.dot(embeddings, query_vec)
+
+    top_indices = np.argsort(scores)[-top_k:][::-1]
+
+    return [
+        (doc_ids[i], float(scores[i]))
+        for i in top_indices
+    ]
 
 
-def save_embeddings(embeddings: np.ndarray, doc_ids: List[str], path: str) -> None:
-    """Save embeddings to disk."""
+def save_embeddings(
+    embeddings: np.ndarray,
+    doc_ids: List[str],
+    path: str
+) -> None:
+    """
+    Save embeddings to disk.
+    """
     os.makedirs(os.path.dirname(path), exist_ok=True)
+
     with open(path, "wb") as f:
-        pickle.dump({"embeddings": embeddings, "doc_ids": doc_ids}, f)
+        pickle.dump(
+            {
+                "embeddings": embeddings,
+                "doc_ids": doc_ids
+            },
+            f
+        )
+
     print(f"Embeddings saved to {path}")
 
 
 def load_embeddings(path: str) -> Tuple[np.ndarray, List[str]]:
-    """Load embeddings from disk."""
+    """
+    Load embeddings from disk.
+    """
     with open(path, "rb") as f:
         data = pickle.load(f)
+
     return data["embeddings"], data["doc_ids"]
