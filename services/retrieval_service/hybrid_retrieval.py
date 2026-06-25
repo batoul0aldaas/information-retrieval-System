@@ -66,14 +66,18 @@ def retrieve_hybrid_serial(
     final_top_k: int = 10,
     bm25_k1: float = 1.5,
     bm25_b: float = 0.75,
-    embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_model: str = "all-MiniLM-L6-v2",
+    dataset: str = None,
 ) -> List[Tuple[str, float]]:
     """
     Serial Hybrid:
     Step 1 — BM25 retrieves top candidates.
     Step 2 — Embedding model re-ranks those candidates.
     """
-    candidates = retrieve_bm25(query, index, top_k=first_stage_top_k, k1=bm25_k1, b=bm25_b)
+    candidates = retrieve_bm25(
+        query, index, top_k=first_stage_top_k,
+        k1=bm25_k1, b=bm25_b, dataset=dataset,
+    )
     candidate_ids = {doc_id for doc_id, _ in candidates}
 
     filtered_ids = [d for d in doc_ids if d in candidate_ids]
@@ -96,7 +100,8 @@ def retrieve_hybrid_parallel(
     bm25_k1: float = 1.5,
     bm25_b: float = 0.75,
     embedding_model: str = "all-MiniLM-L6-v2",
-    weights: List[float] = None
+    weights: List[float] = None,
+    dataset: str = None,
 ) -> List[Tuple[str, float]]:
     """
     Parallel Hybrid:
@@ -105,8 +110,11 @@ def retrieve_hybrid_parallel(
 
     fusion_method: 'rrf' or 'linear'
     """
-    bm25_results = retrieve_bm25(query, index, top_k=top_k * 2, k1=bm25_k1, b=bm25_b)
-    tfidf_results = retrieve_tfidf(query, index, top_k=top_k * 2)
+    bm25_results = retrieve_bm25(
+        query, index, top_k=top_k * 2,
+        k1=bm25_k1, b=bm25_b, dataset=dataset,
+    )
+    tfidf_results = retrieve_tfidf(query, index, top_k=top_k * 2, dataset=dataset)
     embed_results = retrieve_embedding(query, embeddings, doc_ids, embedding_model, top_k=top_k * 2)
 
     all_results = [bm25_results, tfidf_results, embed_results]

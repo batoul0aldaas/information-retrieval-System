@@ -69,10 +69,22 @@ python -m services.indexing_service.run_indexing
 #   data/dataset1/index.pkl
 #   data/dataset2/index.pkl
 
-# Step 4: Start API Gateway
+# Step 3b: Build library-based TF-IDF & BM25 models (sklearn + rank_bm25)
+python -m services.retrieval_service.build_lexical_models
+# Output:
+#   data/dataset1/tfidf_model.pkl
+#   data/dataset1/bm25_model.pkl
+#   data/dataset2/tfidf_model.pkl
+#   data/dataset2/bm25_model.pkl
+# Options: --dataset dataset1 | --force | --sample 5000
+
+# Step 4: (Optional) Generate embeddings for semantic/hybrid search
+python -m services.retrieval_service.run_embeddings
+
+# Step 5: Start API Gateway
 uvicorn services.api_gateway.main:app --reload --port 8000
 
-# Step 5: Start UI
+# Step 6: Start UI
 streamlit run ui/app.py
 ```
 
@@ -132,14 +144,27 @@ python -c "from services.indexing_service.inverted_index import InvertedIndex; i
 python -c "from services.indexing_service.inverted_index import InvertedIndex; idx=InvertedIndex(); idx.load('data/dataset2/index.pkl'); print('Loaded dataset2 index OK')"
 ```
 
+## Verify Lexical Models (TF-IDF + BM25)
+
+```bash
+python -c "from pathlib import Path; print(Path('data/dataset1/tfidf_model.pkl').exists()); print(Path('data/dataset1/bm25_model.pkl').exists()); print(Path('data/dataset2/tfidf_model.pkl').exists()); print(Path('data/dataset2/bm25_model.pkl').exists())"
+
+python -c "from services.retrieval_service.tfidf_retrieval import retrieve_tfidf; print('TF-IDF import OK')"
+
+python -c "from services.retrieval_service.bm25_retrieval import retrieve_bm25; print('BM25 import OK')"
+```
+
+TF-IDF uses **scikit-learn `TfidfVectorizer`** + `cosine_similarity`.  
+BM25 uses **rank_bm25 `BM25Okapi`**. Models are built once via `build_lexical_models` and loaded from cache at query time (not rebuilt on first query).
+
 ## Working Retrieval Models
 
 The following models were tested from the Streamlit UI after building the indexes:
 
 | Model | Dataset 1 | Dataset 2 | Status |
 |------|-----------|-----------|--------|
-| BM25 | Working | Working | Tested |
-| TF-IDF | Working | Working | Tested |
+| BM25 | Working | Working | sklearn rank_bm25 BM25Okapi (requires bm25_model.pkl) |
+| TF-IDF | Working | Working | sklearn TfidfVectorizer (requires tfidf_model.pkl) |
 | Embedding | Not ready | Not ready | Requires embeddings.pkl |
 | Hybrid Serial | Partially ready | Partially ready | Requires embeddings.pkl |
 | Hybrid Parallel | Not ready | Not ready | Requires embeddings.pkl |

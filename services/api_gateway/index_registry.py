@@ -17,6 +17,16 @@ INDEX_PATHS = {
     "dataset2": "data/dataset2/index.pkl",
 }
 
+TFIDF_MODEL_PATHS = {
+    "dataset1": "data/dataset1/tfidf_model.pkl",
+    "dataset2": "data/dataset2/tfidf_model.pkl",
+}
+
+BM25_MODEL_PATHS = {
+    "dataset1": "data/dataset1/bm25_model.pkl",
+    "dataset2": "data/dataset2/bm25_model.pkl",
+}
+
 EMBEDDING_PATHS = {
     "dataset1": "data/dataset1/embeddings.pkl",
     "dataset2": "data/dataset2/embeddings.pkl",

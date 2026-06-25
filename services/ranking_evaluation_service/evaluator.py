@@ -100,10 +100,10 @@ def search(model, query, dataset):
     index = get_index(dataset)
 
     if model == "tfidf":
-        return retrieve_tfidf(query, index, top_k=10)
+        return retrieve_tfidf(query, index, top_k=10, dataset=dataset)
 
     if model == "bm25":
-        return retrieve_bm25(query, index, top_k=10)
+        return retrieve_bm25(query, index, top_k=10, dataset=dataset)
 
     embeddings, doc_ids = get_embeddings(dataset)
 
@@ -121,7 +121,8 @@ def search(model, query, dataset):
             index,
             embeddings,
             doc_ids,
-            final_top_k=10
+            final_top_k=10,
+            dataset=dataset,
         )
 
     return retrieve_hybrid_parallel(
@@ -129,7 +130,8 @@ def search(model, query, dataset):
         index,
         embeddings,
         doc_ids,
-        top_k=10
+        top_k=10,
+        dataset=dataset,
     )
 
 
