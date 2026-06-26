@@ -234,7 +234,7 @@ python test_preprocessing.py
 
 Requirements: 200K+ documents, with queries and qrels.
 
-Large dataset files are not committed to GitHub.  
+Large dataset files are not committed to GitHub.
 They should be downloaded locally using:
 
 ```bash

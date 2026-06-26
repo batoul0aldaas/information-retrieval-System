@@ -153,6 +153,7 @@ def _run_retrieval(request: SearchRequest, tokens: List[str]) -> List[SearchResu
 
     results: List[SearchResult] = []
 
+
     for rank, (doc_id, score) in enumerate(raw_results):
         original_text = get_original_text(request.dataset, str(doc_id))
 
@@ -161,7 +162,7 @@ def _run_retrieval(request: SearchRequest, tokens: List[str]) -> List[SearchResu
                 doc_id=str(doc_id),
                 score=round(float(score), 4),
                 rank=rank + 1,
-                snippet=original_text[:500] if original_text else None,
+                snippet=original_text if original_text else None,
             )
         )
 
