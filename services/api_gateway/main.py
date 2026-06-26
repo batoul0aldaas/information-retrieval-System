@@ -125,7 +125,6 @@ def _run_retrieval(request: SearchRequest, tokens: List[str]) -> List[SearchResu
             k1=request.bm25_k1, b=request.bm25_b,
             dataset=request.dataset,
         )
-
     elif request.model == "embedding":
         from services.retrieval_service.embedding_retrieval import retrieve_embedding_faiss
         raw_results = retrieve_embedding_faiss(
@@ -133,7 +132,6 @@ def _run_retrieval(request: SearchRequest, tokens: List[str]) -> List[SearchResu
             request.dataset,
             top_k=request.top_k,
         )
-
 
     elif request.model in ("hybrid_serial", "hybrid_parallel"):
         from services.api_gateway.index_registry import get_index, get_embeddings

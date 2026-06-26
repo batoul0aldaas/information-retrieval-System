@@ -99,6 +99,7 @@ def retrieve_hybrid_parallel(
     )
 
 
+
     all_results = [bm25_results, tfidf_results, embed_results]
 
     if fusion_method == "rrf":
