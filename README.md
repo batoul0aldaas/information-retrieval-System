@@ -69,7 +69,19 @@ python -m services.indexing_service.run_indexing
 #   data/dataset1/index.pkl
 #   data/dataset2/index.pkl
 
-# Step 4: Start API Gateway
+# Step 3b: Build library-based TF-IDF & BM25 models (sklearn + rank_bm25)
+python -m services.retrieval_service.build_lexical_models
+# Output:
+#   data/dataset1/tfidf_model.pkl
+#   data/dataset1/bm25_model.pkl
+#   data/dataset2/tfidf_model.pkl
+#   data/dataset2/bm25_model.pkl
+# Options: --dataset dataset1 | --force | --sample 5000
+
+# Step 4: (Optional) Generate embeddings for semantic/hybrid search
+python -m services.retrieval_service.run_embeddings
+
+# Step 5: Start API Gateway
 uvicorn services.api_gateway.main:app --reload --port 8000
 
 # Step 5: Build document lookup for displaying original documents
@@ -84,6 +96,17 @@ streamlit run ui/app.py
 
 
 ```
+
+## Document Store / Original Document Lookup
+
+To display the original document text in the final search results, a document lookup file is generated for each dataset.
+
+The retrieval models return only `doc_id` and `score`.  
+After ranking, the API uses the `doc_id` to fetch the original document text from:
+
+````text
+data/dataset1/document_lookup.pkl
+data/dataset2/document_lookup.pkl
 
 ## Indexing Results
 
@@ -140,6 +163,19 @@ python -c "from services.indexing_service.inverted_index import InvertedIndex; i
 
 python -c "from services.indexing_service.inverted_index import InvertedIndex; idx=InvertedIndex(); idx.load('data/dataset2/index.pkl'); print('Loaded dataset2 index OK')"
 ```
+
+## Verify Lexical Models (TF-IDF + BM25)
+
+```bash
+python -c "from pathlib import Path; print(Path('data/dataset1/tfidf_model.pkl').exists()); print(Path('data/dataset1/bm25_model.pkl').exists()); print(Path('data/dataset2/tfidf_model.pkl').exists()); print(Path('data/dataset2/bm25_model.pkl').exists())"
+
+python -c "from services.retrieval_service.tfidf_retrieval import retrieve_tfidf; print('TF-IDF import OK')"
+
+python -c "from services.retrieval_service.bm25_retrieval import retrieve_bm25; print('BM25 import OK')"
+```
+
+TF-IDF uses **scikit-learn `TfidfVectorizer`** + `cosine_similarity`.
+BM25 uses **rank_bm25 `BM25Okapi`**. Models are built once via `build_lexical_models` and loaded from cache at query time (not rebuilt on first query).
 
 ## Working Retrieval Models
 
@@ -198,7 +234,7 @@ python test_preprocessing.py
 
 Requirements: 200K+ documents, with queries and qrels.
 
-Large dataset files are not committed to GitHub.  
+Large dataset files are not committed to GitHub.
 They should be downloaded locally using:
 
 ```bash
@@ -309,6 +345,7 @@ These generated files are not committed to GitHub because they can be large and 
 python -m services.retrieval_service.run_embeddings
 ```
 
+<<<<<<< HEAD
 ---
 
 ### Embedding Search Test
@@ -514,3 +551,82 @@ services/query_service/query_processor.py
 services/ranking_evaluation_service/comparison_service.py
 services/api_gateway/main.py (updated search pipeline)
 ui/app.py (Streamlit interface)
+=======
+<<<<<<< HEAD
+Note: Embedding generation for 500,000 documents per dataset can take a long time and may require significant memory.
+## Evaluation
+
+The retrieval models were evaluated using standard Information Retrieval metrics.
+
+### Metrics
+
+- MAP
+- Recall@10
+- Precision@10
+- nDCG@10
+
+### Evaluation Dataset
+
+- Dataset: MSMARCO Passage
+- Evaluated queries: 2,781
+
+### Results
+
+| Model | MAP | Recall@10 | P@10 | nDCG@10 |
+|-------|------|------------|------|---------|
+| TF-IDF | 0.003032 | 0.006293 | 0.000683 | 0.003868 |
+| BM25 | 0.003613 | 0.007371 | 0.000791 | 0.004592 |
+| Embedding | 0.006783 | 0.011866 | 0.001259 | 0.008132 |
+| Hybrid Serial | 0.005747 | 0.009349 | 0.000971 | 0.006700 |
+| Hybrid Parallel | 0.004407 | 0.008990 | 0.000971 | 0.005613 |
+
+### Key Findings
+
+- Embedding retrieval achieved the best MAP and nDCG@10 scores.
+- BM25 outperformed TF-IDF across all metrics.
+- Hybrid retrieval improved recall compared with lexical approaches.
+
+### Run Evaluation
+
+```bash
+python -m services.ranking_evaluation_service.evaluator
+```
+
+### Generate Charts
+
+```bash
+python reports/generate_charts.py
+```
+## Team
+
+| Member | Responsibility |
+|--------|---------------|
+| Person 1 | Core Architecture, Preprocessing Service |
+| Person 2 | Indexing Service, TF-IDF, BM25 |
+| Person 3 | Embeddings, Hybrid Representation |
+| Person 4 | Query Processing & Refinement |
+| Person 5 | Evaluation, UI, Additional Feature |
+
+
+
+
+## Evaluation Charts
+
+### MAP
+
+![MAP](reports/figures/MAP.png)
+
+### Recall@10
+
+![Recall](reports/figures/Recall@10.png)
+
+### Precision@10
+
+![Precision](reports/figures/P@10.png)
+
+### nDCG@10
+
+![nDCG](reports/figures/nDCG@10.png)
+
+````
+>>>>>>> a53e584173b80933109d55f30e06845f6710664a

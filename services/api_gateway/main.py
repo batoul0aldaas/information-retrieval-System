@@ -45,7 +45,6 @@ class SearchResponse(BaseModel):
     results: List[SearchResult]
     total_results: int
 
-
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @app.get("/")
@@ -75,7 +74,7 @@ def search(request: SearchRequest):
         use_synonyms=request.use_synonyms,
         use_prf=request.use_prf,
         index=index,
-        dataset=request.dataset
+        dataset=request.dataset,
     )
 
     results = _run_retrieval(request, refined["expanded_tokens"])
@@ -86,8 +85,7 @@ def search(request: SearchRequest):
         expanded_query=refined.get("prf_query"),
         model_used=request.model,
         results=results,
-        total_results=len(results)
-        
+        total_results=len(results),
     )
 
 @app.get("/suggest")
@@ -114,7 +112,9 @@ def _run_retrieval(request: SearchRequest, tokens: List[str]) -> List[SearchResu
         from services.retrieval_service.tfidf_retrieval import retrieve_tfidf
         from services.api_gateway.index_registry import get_index
         index = get_index(request.dataset)
-        raw_results = retrieve_tfidf(query_text, index, top_k=request.top_k)
+        raw_results = retrieve_tfidf(
+            query_text, index, top_k=request.top_k, dataset=request.dataset
+        )
 
     elif request.model == "bm25":
         from services.retrieval_service.bm25_retrieval import retrieve_bm25
@@ -122,7 +122,8 @@ def _run_retrieval(request: SearchRequest, tokens: List[str]) -> List[SearchResu
         index = get_index(request.dataset)
         raw_results = retrieve_bm25(
             query_text, index, top_k=request.top_k,
-            k1=request.bm25_k1, b=request.bm25_b
+            k1=request.bm25_k1, b=request.bm25_b,
+            dataset=request.dataset,
         )
 
     elif request.model == "embedding":
@@ -133,6 +134,7 @@ def _run_retrieval(request: SearchRequest, tokens: List[str]) -> List[SearchResu
             top_k=request.top_k,
         )
 
+
     elif request.model in ("hybrid_serial", "hybrid_parallel"):
         from services.api_gateway.index_registry import get_index, get_embeddings
         index = get_index(request.dataset)
@@ -142,19 +144,22 @@ def _run_retrieval(request: SearchRequest, tokens: List[str]) -> List[SearchResu
             from services.retrieval_service.hybrid_retrieval import retrieve_hybrid_serial
             raw_results = retrieve_hybrid_serial(
                 query_text, index, embeddings, doc_ids,
-                final_top_k=request.top_k, dataset=request.dataset,
-                bm25_k1=request.bm25_k1, bm25_b=request.bm25_b
+                final_top_k=request.top_k,
+                bm25_k1=request.bm25_k1, bm25_b=request.bm25_b,
+                dataset=request.dataset,
             )
         else:
             from services.retrieval_service.hybrid_retrieval import retrieve_hybrid_parallel
             raw_results = retrieve_hybrid_parallel(
                 query_text, index, embeddings, doc_ids,
-                top_k=request.top_k,  dataset=request.dataset,
+                top_k=request.top_k,
                 fusion_method=request.fusion_method,
-                bm25_k1=request.bm25_k1, bm25_b=request.bm25_b
+                bm25_k1=request.bm25_k1, bm25_b=request.bm25_b,
+                dataset=request.dataset,
             )
 
     results: List[SearchResult] = []
+
 
     for rank, (doc_id, score) in enumerate(raw_results):
         original_text = get_original_text(request.dataset, str(doc_id))
@@ -164,10 +169,8 @@ def _run_retrieval(request: SearchRequest, tokens: List[str]) -> List[SearchResu
                 doc_id=str(doc_id),
                 score=round(float(score), 4),
                 rank=rank + 1,
-                snippet=original_text[:500] if original_text else None,
+                snippet=original_text if original_text else None,
             )
         )
 
     return results
-
-    

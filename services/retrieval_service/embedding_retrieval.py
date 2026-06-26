@@ -89,3 +89,18 @@ def load_embeddings(path: str):
         data = pickle.load(file)
 
     return data["embeddings"], data["doc_ids"]
+
+
+def retrieve_embedding(
+    query: str,
+    embeddings=None,
+    doc_ids=None,
+    model_name: str = MODEL_NAME,
+    top_k: int = 10,
+    dataset_id: str = "dataset1",
+):
+    return retrieve_embedding_faiss(
+        query=query,
+        dataset_id=dataset_id,
+        top_k=top_k,
+    )

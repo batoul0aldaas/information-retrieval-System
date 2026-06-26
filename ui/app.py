@@ -67,8 +67,8 @@ if search_clicked and query:
                 "use_spell_correction": spell_correction,
                 "use_synonyms": use_synonyms,
                 "use_prf": use_prf,
-            }
-
+ 
+ }
             response = requests.post(
                 f"{API_URL}/search",
                 json=payload,

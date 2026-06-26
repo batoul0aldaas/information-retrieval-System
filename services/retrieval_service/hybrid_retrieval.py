@@ -27,21 +27,22 @@ def retrieve_hybrid_serial(
     index: InvertedIndex,
     embeddings: np.ndarray,
     doc_ids: List[str],
-     dataset: str = None,
     first_stage_top_k: int = 100,
     final_top_k: int = 10,
     bm25_k1: float = 1.5,
     bm25_b: float = 0.75,
-    embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_model: str = "all-MiniLM-L6-v2",
+    dataset: str = None,
 ) -> List[Tuple[str, float]]:
 
-    # Step 1: BM25 candidates
+    """
+    Serial Hybrid:
+    Step 1 — BM25 retrieves top candidates.
+    Step 2 — Embedding model re-ranks those candidates.
+    """
     candidates = retrieve_bm25(
-        query,
-        index,
-        top_k=first_stage_top_k,
-        k1=bm25_k1,
-        b=bm25_b
+        query, index, top_k=first_stage_top_k,
+        k1=bm25_k1, b=bm25_b, dataset=dataset,
     )
 
     candidate_ids = {doc_id for doc_id, _ in candidates}
@@ -71,22 +72,23 @@ def retrieve_hybrid_parallel(
     index: InvertedIndex,
     embeddings: np.ndarray,
     doc_ids: List[str],
-    dataset: str = None,
     top_k: int = 10,
     fusion_method: str = "rrf",
     bm25_k1: float = 1.5,
     bm25_b: float = 0.75,
     embedding_model: str = "all-MiniLM-L6-v2",
-    weights: List[float] = None
+    weights: List[float] = None,
+    dataset: str = None,
 ) -> List[Tuple[str, float]]:
 
     bm25_results = retrieve_bm25(
         query, index, top_k=top_k * 2,
-        k1=bm25_k1, b=bm25_b
+        k1=bm25_k1, b=bm25_b ,  dataset=dataset,
     )
 
     tfidf_results = retrieve_tfidf(
         query, index, top_k=top_k * 2
+        ,  dataset=dataset,
     )
 
     # FIX: FAISS embedding retrieval
@@ -95,6 +97,7 @@ def retrieve_hybrid_parallel(
         dataset_id=dataset if dataset else "dataset1",
         top_k=top_k * 2
     )
+
 
     all_results = [bm25_results, tfidf_results, embed_results]
 

@@ -8,11 +8,11 @@ def main() -> None:
         top_k=5,
     )
 
-    for rank, result in enumerate(results, start=1):
+    for rank, (doc_id, score) in enumerate(results, start=1):
         print("-" * 80)
         print({
-            "doc_id": result[0],
-            "score": result[1],
+            "doc_id": doc_id,
+            "score": score,
             "rank": rank,
             "model": "embedding",
         })

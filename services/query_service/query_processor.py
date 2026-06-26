@@ -164,7 +164,8 @@ def pseudo_relevance_feedback(
         index,
         top_k=top_k,
         k1=bm25_k1,
-        b=bm25_b
+        b=bm25_b,
+        dataset=dataset,
     )
 
     # 2. collect words from top docs
